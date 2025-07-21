@@ -206,6 +206,10 @@ const SchoolSchedule = () => {
                 <span>Қазақ тілі / Казахский язык</span>
               </div>
               <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-purple-300 rounded border-2 border-purple-400"></div>
+                <span>Қазақ әдебиеті / Казахская литература</span>
+              </div>
+              <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-orange-200 rounded border-2 border-orange-300"></div>
                 <span>Дене шынықтыру / Физкультура</span>
               </div>
@@ -216,6 +220,26 @@ const SchoolSchedule = () => {
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-indigo-200 rounded border-2 border-indigo-300"></div>
                 <span>Орыс тілі / Русский язык</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-yellow-200 rounded border-2 border-yellow-300"></div>
+                <span>Қазақстан тарихы / История Казахстана</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-amber-200 rounded border-2 border-amber-300"></div>
+                <span>Дүниежүзі тарихы / Всемирная история</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-teal-200 rounded border-2 border-teal-300"></div>
+                <span>Жаратылыстану / Естествознание</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-cyan-200 rounded border-2 border-cyan-300"></div>
+                <span>Информатика</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-rose-200 rounded border-2 border-rose-300"></div>
+                <span>Музыка</span>
               </div>
             </div>
           </CardContent>
