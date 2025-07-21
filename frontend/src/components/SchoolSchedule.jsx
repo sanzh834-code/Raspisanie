@@ -33,11 +33,15 @@ const SchoolSchedule = () => {
       'Математика': 'bg-blue-100 text-blue-800 border-blue-200',
       'Ағылшын тілі': 'bg-green-100 text-green-800 border-green-200',
       'Қазақ тілі': 'bg-purple-100 text-purple-800 border-purple-200',
+      'Қазақ әдебиеті': 'bg-purple-200 text-purple-900 border-purple-300',
       'Дене шынықтыру': 'bg-orange-100 text-orange-800 border-orange-200',
       'Көркем еңбек': 'bg-pink-100 text-pink-800 border-pink-200',
       'Орыс тілі': 'bg-indigo-100 text-indigo-800 border-indigo-200',
       'Қазақстан тарихы': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      'Дүниежүзі тарихы': 'bg-amber-100 text-amber-800 border-amber-200',
       'Жаратылыстану': 'bg-teal-100 text-teal-800 border-teal-200',
+      'Информатика': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+      'Музыка': 'bg-rose-100 text-rose-800 border-rose-200',
       'Сынып сағаты': 'bg-gray-100 text-gray-800 border-gray-200'
     };
     
