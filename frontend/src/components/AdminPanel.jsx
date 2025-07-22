@@ -8,14 +8,15 @@ import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Alert, AlertDescription } from './ui/alert';
-import { Plus, Edit, Trash2, Save, Settings, BookOpen, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, Settings, BookOpen, Calendar, ArrowLeft } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
+import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const AdminPanel = () => {
+const AdminPanel = ({ onBack }) => {
   const [subjects, setSubjects] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,8 @@ const AdminPanel = () => {
   });
   
   const { toast } = useToast();
+  const { user } = useAuth();
+  
   const grades = Array.from({ length: 11 }, (_, i) => (i + 1).toString());
   const letters = ['А', 'Ә', 'Б', 'В'];
   const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
@@ -118,7 +121,7 @@ const AdminPanel = () => {
     } catch (error) {
       toast({
         title: "Ошибка",
-        description: "Не удалось добавить предмет",
+        description: error.response?.data?.detail || "Не удалось добавить предмет",
         variant: "destructive"
       });
     } finally {
@@ -137,7 +140,7 @@ const AdminPanel = () => {
     } catch (error) {
       toast({
         title: "Ошибка",
-        description: "Не удалось удалить предмет",
+        description: error.response?.data?.detail || "Не удалось удалить предмет",
         variant: "destructive"
       });
     }
@@ -191,7 +194,7 @@ const AdminPanel = () => {
     } catch (error) {
       toast({
         title: "Ошибка",
-        description: "Не удалось сохранить расписание",
+        description: error.response?.data?.detail || "Не удалось сохранить расписание",
         variant: "destructive"
       });
     } finally {
@@ -204,15 +207,35 @@ const AdminPanel = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <div className="p-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl shadow-lg">
-              <Settings className="h-8 w-8 text-white" />
+          <div className="flex items-center justify-between mb-4">
+            <Button 
+              variant="outline" 
+              onClick={onBack}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Назад к расписанию
+            </Button>
+            
+            <div className="inline-flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl shadow-lg">
+                <Settings className="h-8 w-8 text-white" />
+              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                Админ панель
+              </h1>
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              Админ панель
-            </h1>
+
+            <div className="w-32"></div> {/* Spacer for centering */}
           </div>
+          
           <p className="text-gray-600 text-lg">Управление расписанием школы</p>
+          
+          {user && (
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 mt-2">
+              Вошли как: {user.username}
+            </Badge>
+          )}
         </div>
 
         <Tabs defaultValue="schedules" className="space-y-6">
