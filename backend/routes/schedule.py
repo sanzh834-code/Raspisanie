@@ -2,15 +2,21 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from models.schedule import Schedule, ScheduleCreate, ScheduleUpdate, Subject, SubjectCreate, SchoolClass, SchoolClassCreate
+from models.auth import User
+from routes.auth import get_admin_user
 from database import get_database
 import uuid
 from datetime import datetime
 
 router = APIRouter()
 
-# Subject routes
+# Subject routes - Protected
 @router.post("/subjects", response_model=Subject)
-async def create_subject(subject: SubjectCreate, db: AsyncIOMotorDatabase = Depends(get_database)):
+async def create_subject(
+    subject: SubjectCreate, 
+    db: AsyncIOMotorDatabase = Depends(get_database),
+    admin_user: User = Depends(get_admin_user)
+):
     subject_dict = subject.dict()
     subject_obj = Subject(**subject_dict)
     result = await db.subjects.insert_one(subject_obj.dict())
@@ -18,11 +24,16 @@ async def create_subject(subject: SubjectCreate, db: AsyncIOMotorDatabase = Depe
 
 @router.get("/subjects", response_model=List[Subject])
 async def get_subjects(db: AsyncIOMotorDatabase = Depends(get_database)):
+    """Get subjects - public endpoint"""
     subjects = await db.subjects.find().to_list(1000)
     return [Subject(**subject) for subject in subjects]
 
 @router.delete("/subjects/{subject_id}")
-async def delete_subject(subject_id: str, db: AsyncIOMotorDatabase = Depends(get_database)):
+async def delete_subject(
+    subject_id: str, 
+    db: AsyncIOMotorDatabase = Depends(get_database),
+    admin_user: User = Depends(get_admin_user)
+):
     result = await db.subjects.delete_one({"id": subject_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Subject not found")
@@ -30,7 +41,12 @@ async def delete_subject(subject_id: str, db: AsyncIOMotorDatabase = Depends(get
 
 # Schedule routes
 @router.post("/schedules", response_model=Schedule)
-async def create_schedule(schedule_data: ScheduleCreate, db: AsyncIOMotorDatabase = Depends(get_database)):
+async def create_schedule(
+    schedule_data: ScheduleCreate, 
+    db: AsyncIOMotorDatabase = Depends(get_database),
+    admin_user: User = Depends(get_admin_user)
+):
+    """Create schedule - admin only"""
     # Check if schedule already exists for this class
     existing = await db.schedules.find_one({"grade": schedule_data.grade, "letter": schedule_data.letter})
     if existing:
@@ -45,18 +61,27 @@ async def create_schedule(schedule_data: ScheduleCreate, db: AsyncIOMotorDatabas
 
 @router.get("/schedules", response_model=List[Schedule])
 async def get_all_schedules(db: AsyncIOMotorDatabase = Depends(get_database)):
+    """Get all schedules - public endpoint"""
     schedules = await db.schedules.find().to_list(1000)
     return [Schedule(**schedule) for schedule in schedules]
 
 @router.get("/schedules/{grade}/{letter}", response_model=Schedule)
 async def get_schedule(grade: int, letter: str, db: AsyncIOMotorDatabase = Depends(get_database)):
+    """Get specific schedule - public endpoint"""
     schedule = await db.schedules.find_one({"grade": grade, "letter": letter})
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
     return Schedule(**schedule)
 
 @router.put("/schedules/{grade}/{letter}", response_model=Schedule)
-async def update_schedule(grade: int, letter: str, schedule_update: ScheduleUpdate, db: AsyncIOMotorDatabase = Depends(get_database)):
+async def update_schedule(
+    grade: int, 
+    letter: str, 
+    schedule_update: ScheduleUpdate, 
+    db: AsyncIOMotorDatabase = Depends(get_database),
+    admin_user: User = Depends(get_admin_user)
+):
+    """Update schedule - admin only"""
     update_data = schedule_update.dict()
     update_data["updated_at"] = datetime.utcnow()
     
@@ -72,7 +97,13 @@ async def update_schedule(grade: int, letter: str, schedule_update: ScheduleUpda
     return Schedule(**updated_schedule)
 
 @router.delete("/schedules/{grade}/{letter}")
-async def delete_schedule(grade: int, letter: str, db: AsyncIOMotorDatabase = Depends(get_database)):
+async def delete_schedule(
+    grade: int, 
+    letter: str, 
+    db: AsyncIOMotorDatabase = Depends(get_database),
+    admin_user: User = Depends(get_admin_user)
+):
+    """Delete schedule - admin only"""
     result = await db.schedules.delete_one({"grade": grade, "letter": letter})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Schedule not found")
@@ -81,7 +112,7 @@ async def delete_schedule(grade: int, letter: str, db: AsyncIOMotorDatabase = De
 # Utility routes
 @router.get("/classes")
 async def get_all_classes(db: AsyncIOMotorDatabase = Depends(get_database)):
-    """Get all classes that have schedules"""
+    """Get all classes that have schedules - public endpoint"""
     schedules = await db.schedules.find().to_list(1000)
     classes = []
     for schedule in schedules:
@@ -94,8 +125,12 @@ async def get_all_classes(db: AsyncIOMotorDatabase = Depends(get_database)):
     return classes
 
 @router.post("/schedules/bulk")
-async def create_bulk_schedules(schedules: List[ScheduleCreate], db: AsyncIOMotorDatabase = Depends(get_database)):
-    """Create multiple schedules at once"""
+async def create_bulk_schedules(
+    schedules: List[ScheduleCreate], 
+    db: AsyncIOMotorDatabase = Depends(get_database),
+    admin_user: User = Depends(get_admin_user)
+):
+    """Create multiple schedules at once - admin only"""
     created_schedules = []
     
     for schedule_data in schedules:
