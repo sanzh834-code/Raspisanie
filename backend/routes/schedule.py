@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from ..models.schedule import Schedule, ScheduleCreate, ScheduleUpdate, Subject, SubjectCreate, SchoolClass, SchoolClassCreate
-from ..database import get_database
+from models.schedule import Schedule, ScheduleCreate, ScheduleUpdate, Subject, SubjectCreate, SchoolClass, SchoolClassCreate
+from database import get_database
 import uuid
 from datetime import datetime
 
