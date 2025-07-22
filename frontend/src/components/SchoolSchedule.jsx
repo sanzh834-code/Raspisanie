@@ -1,18 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Badge } from './ui/badge';
-import { Clock, BookOpen, Users, Calendar } from 'lucide-react';
-import { mockScheduleData } from '../data/mockSchedule';
+import { Button } from './ui/button';
+import { Clock, BookOpen, Users, Calendar, Settings } from 'lucide-react';
+import { useToast } from '../hooks/use-toast';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const SchoolSchedule = () => {
   const [selectedGrade, setSelectedGrade] = useState('1');
   const [selectedClass, setSelectedClass] = useState('А');
-
+  const [schedule, setSchedule] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  
+  const { toast } = useToast();
+  
   const grades = Array.from({ length: 11 }, (_, i) => (i + 1).toString());
   const classes = ['А', 'Ә', 'Б', 'В'];
   const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница'];
   const daysEn = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
 
   const timeSlots = [
     { period: 1, time: '14:00-14:45' },
@@ -24,9 +35,40 @@ const SchoolSchedule = () => {
     { period: 7, time: '19:05-19:50' }
   ];
 
-  const getCurrentSchedule = () => {
-    return mockScheduleData[`${selectedGrade}${selectedClass}`] || mockScheduleData.default;
+  // Load schedule from backend
+  const loadSchedule = async (grade, letter) => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API}/school/schedules/${grade}/${letter}`);
+      setSchedule(response.data.schedule);
+    } catch (error) {
+      // No schedule found, set empty
+      setSchedule({
+        monday: [],
+        tuesday: [],
+        wednesday: [],
+        thursday: [],
+        friday: []
+      });
+      
+      if (error.response?.status !== 404) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить расписание",
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Load schedule when class changes
+  useEffect(() => {
+    if (selectedGrade && selectedClass) {
+      loadSchedule(selectedGrade, selectedClass);
+    }
+  }, [selectedGrade, selectedClass]);
 
   const getSubjectColor = (subject) => {
     const colors = {
@@ -51,6 +93,16 @@ const SchoolSchedule = () => {
     return 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
+  if (showAdmin) {
+    // Dynamically import AdminPanel
+    const AdminPanel = React.lazy(() => import('./AdminPanel'));
+    return (
+      <React.Suspense fallback={<div>Loading...</div>}>
+        <AdminPanel />
+      </React.Suspense>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
@@ -65,6 +117,16 @@ const SchoolSchedule = () => {
             </h1>
           </div>
           <p className="text-gray-600 text-lg">Расписание занятий • School Schedule</p>
+          
+          {/* Admin button */}
+          <Button 
+            variant="outline" 
+            onClick={() => setShowAdmin(true)}
+            className="mt-4 hover:bg-purple-50"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Админ панель
+          </Button>
         </div>
 
         {/* Class Selector */}
@@ -116,6 +178,13 @@ const SchoolSchedule = () => {
               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 px-4 py-2 text-lg font-semibold">
                 {selectedGrade}{selectedClass} сынып
               </Badge>
+
+              {loading && (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span className="text-sm text-gray-600">Загрузка...</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -133,117 +202,131 @@ const SchoolSchedule = () => {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <div className="min-w-[800px]">
-                {/* Header Row */}
-                <div className="grid grid-cols-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-                  <div className="p-4 font-semibold border-r border-blue-500">
-                    <div className="text-sm">Уақыт</div>
-                    <div className="text-xs opacity-90">Время</div>
+            {schedule ? (
+              <div className="overflow-x-auto">
+                <div className="min-w-[800px]">
+                  {/* Header Row */}
+                  <div className="grid grid-cols-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                    <div className="p-4 font-semibold border-r border-blue-500">
+                      <div className="text-sm">Уақыт</div>
+                      <div className="text-xs opacity-90">Время</div>
+                    </div>
+                    {days.map((day, index) => (
+                      <div key={day} className="p-4 text-center font-semibold border-r border-blue-500 last:border-r-0">
+                        <div className="text-sm">{day}</div>
+                        <div className="text-xs opacity-90">{daysEn[index]}</div>
+                      </div>
+                    ))}
                   </div>
-                  {days.map((day, index) => (
-                    <div key={day} className="p-4 text-center font-semibold border-r border-blue-500 last:border-r-0">
-                      <div className="text-sm">{day}</div>
-                      <div className="text-xs opacity-90">{daysEn[index]}</div>
+
+                  {/* Schedule Rows */}
+                  {timeSlots.map((slot, timeIndex) => (
+                    <div key={slot.period} className={`grid grid-cols-6 ${timeIndex % 2 === 0 ? 'bg-gray-50' : 'bg-white'} border-b border-gray-200`}>
+                      <div className="p-4 border-r border-gray-200 bg-blue-50">
+                        <div className="font-semibold text-blue-800">{slot.period}</div>
+                        <div className="text-xs text-blue-600 font-medium">{slot.time}</div>
+                      </div>
+                      {dayKeys.map((dayKey, dayIndex) => {
+                        const subject = schedule[dayKey] && schedule[dayKey][slot.period - 1];
+                        
+                        return (
+                          <div key={`${dayKey}-${slot.period}`} className="p-3 border-r border-gray-200 last:border-r-0 min-h-[80px]">
+                            {subject ? (
+                              <div className={`rounded-lg p-3 h-full border-2 transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${getSubjectColor(subject)}`}>
+                                <div className="text-sm font-semibold leading-tight">
+                                  {subject}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-gray-400 text-center text-xs pt-4">
+                                Сабақ жоқ
+                                <br />
+                                <span className="text-gray-300">Нет урока</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>
-
-                {/* Schedule Rows */}
-                {timeSlots.map((slot, timeIndex) => (
-                  <div key={slot.period} className={`grid grid-cols-6 ${timeIndex % 2 === 0 ? 'bg-gray-50' : 'bg-white'} border-b border-gray-200`}>
-                    <div className="p-4 border-r border-gray-200 bg-blue-50">
-                      <div className="font-semibold text-blue-800">{slot.period}</div>
-                      <div className="text-xs text-blue-600 font-medium">{slot.time}</div>
-                    </div>
-                    {days.map((day, dayIndex) => {
-                      const dayKey = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'][dayIndex];
-                      const schedule = getCurrentSchedule();
-                      const subject = schedule[dayKey] && schedule[dayKey][slot.period - 1];
-                      
-                      return (
-                        <div key={`${day}-${slot.period}`} className="p-3 border-r border-gray-200 last:border-r-0 min-h-[80px]">
-                          {subject ? (
-                            <div className={`rounded-lg p-3 h-full border-2 transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${getSubjectColor(subject)}`}>
-                              <div className="text-sm font-semibold leading-tight">
-                                {subject}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-gray-400 text-center text-xs pt-4">
-                              Сабақ жоқ
-                              <br />
-                              <span className="text-gray-300">Нет урока</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-12">
+                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <div className="text-gray-500">
+                  {loading ? "Загрузка расписания..." : "Расписание для этого класса не найдено"}
+                </div>
+                {!loading && (
+                  <div className="text-sm text-gray-400 mt-2">
+                    Обратитесь к администратору для добавления расписания
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Legend */}
-        <Card className="mt-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Пәндер туралы / О предметах</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-200 rounded border-2 border-blue-300"></div>
-                <span>Математика</span>
+        {schedule && (
+          <Card className="mt-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Пәндер туралы / О предметах</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-blue-200 rounded border-2 border-blue-300"></div>
+                  <span>Математика</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-200 rounded border-2 border-green-300"></div>
+                  <span>Ағылшын тілі / Английский язык</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-purple-200 rounded border-2 border-purple-300"></div>
+                  <span>Қазақ тілі / Казахский язык</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-purple-300 rounded border-2 border-purple-400"></div>
+                  <span>Қазақ әдебиеті / Казахская литература</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-orange-200 rounded border-2 border-orange-300"></div>
+                  <span>Дене шынықтыру / Физкультура</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-pink-200 rounded border-2 border-pink-300"></div>
+                  <span>Көркем еңбек / Труд</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-indigo-200 rounded border-2 border-indigo-300"></div>
+                  <span>Орыс тілі / Русский язык</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-yellow-200 rounded border-2 border-yellow-300"></div>
+                  <span>Қазақстан тарихы / История Казахстана</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-amber-200 rounded border-2 border-amber-300"></div>
+                  <span>Дүниежүзі тарихы / Всемирная история</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-teal-200 rounded border-2 border-teal-300"></div>
+                  <span>Жаратылыстану / Естествознание</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-cyan-200 rounded border-2 border-cyan-300"></div>
+                  <span>Информатика</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-rose-200 rounded border-2 border-rose-300"></div>
+                  <span>Музыка</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-200 rounded border-2 border-green-300"></div>
-                <span>Ағылшын тілі / Английский язык</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-purple-200 rounded border-2 border-purple-300"></div>
-                <span>Қазақ тілі / Казахский язык</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-purple-300 rounded border-2 border-purple-400"></div>
-                <span>Қазақ әдебиеті / Казахская литература</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-orange-200 rounded border-2 border-orange-300"></div>
-                <span>Дене шынықтыру / Физкультура</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-pink-200 rounded border-2 border-pink-300"></div>
-                <span>Көркем еңбек / Труд</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-indigo-200 rounded border-2 border-indigo-300"></div>
-                <span>Орыс тілі / Русский язык</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-yellow-200 rounded border-2 border-yellow-300"></div>
-                <span>Қазақстан тарихы / История Казахстана</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-amber-200 rounded border-2 border-amber-300"></div>
-                <span>Дүниежүзі тарихы / Всемирная история</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-teal-200 rounded border-2 border-teal-300"></div>
-                <span>Жаратылыстану / Естествознание</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-cyan-200 rounded border-2 border-cyan-300"></div>
-                <span>Информатика</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-rose-200 rounded border-2 border-rose-300"></div>
-                <span>Музыка</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
