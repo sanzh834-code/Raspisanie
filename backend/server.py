@@ -10,6 +10,7 @@ from typing import List
 import uuid
 from datetime import datetime
 from routes.schedule import router as schedule_router
+from routes.auth import router as auth_router
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -61,7 +62,8 @@ async def health_check():
     except Exception as e:
         return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
 
-# Include schedule routes
+# Include routers
+api_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(schedule_router, prefix="/school", tags=["Schedule Management"])
 
 # Include the router in the main app
