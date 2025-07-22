@@ -3,8 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { Clock, BookOpen, Users, Calendar, Settings } from 'lucide-react';
+import { Clock, BookOpen, Users, Calendar, Settings, LogOut } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
+import { useAuth } from '../contexts/AuthContext';
+import LoginForm from './LoginForm';
+import AdminPanel from './AdminPanel';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -18,6 +21,7 @@ const SchoolSchedule = () => {
   const [showAdmin, setShowAdmin] = useState(false);
   
   const { toast } = useToast();
+  const { user, isAuthenticated, isAdmin, logout, loading: authLoading } = useAuth();
   
   const grades = Array.from({ length: 11 }, (_, i) => (i + 1).toString());
   const classes = ['А', 'Ә', 'Б', 'В'];
@@ -93,14 +97,41 @@ const SchoolSchedule = () => {
     return 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
-  if (showAdmin) {
-    // Dynamically import AdminPanel
-    const AdminPanel = React.lazy(() => import('./AdminPanel'));
+  const handleAdminClick = () => {
+    if (isAuthenticated() && isAdmin()) {
+      setShowAdmin(true);
+    } else {
+      setShowAdmin(false);
+      // Will show login form since user is not authenticated
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    setShowAdmin(false);
+    toast({
+      title: "Успешно",
+      description: "Вы вышли из системы"
+    });
+  };
+
+  // Show loading while auth is being checked
+  if (authLoading) {
     return (
-      <React.Suspense fallback={<div>Loading...</div>}>
-        <AdminPanel />
-      </React.Suspense>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
     );
+  }
+
+  // Show login form if admin panel requested but not authenticated
+  if (showAdmin && !isAuthenticated()) {
+    return <LoginForm />;
+  }
+
+  // Show admin panel if authenticated and authorized
+  if (showAdmin && isAuthenticated() && isAdmin()) {
+    return <AdminPanel onBack={() => setShowAdmin(false)} />;
   }
 
   return (
@@ -118,15 +149,47 @@ const SchoolSchedule = () => {
           </div>
           <p className="text-gray-600 text-lg">Расписание занятий • School Schedule</p>
           
-          {/* Admin button */}
-          <Button 
-            variant="outline" 
-            onClick={() => setShowAdmin(true)}
-            className="mt-4 hover:bg-purple-50"
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Админ панель
-          </Button>
+          {/* Admin buttons */}
+          <div className="mt-4 flex justify-center gap-3">
+            {isAuthenticated() && isAdmin() ? (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={handleAdminClick}
+                  className="hover:bg-purple-50"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Админ панель
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleLogout}
+                  className="hover:bg-red-50 text-red-600"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Выйти
+                </Button>
+              </>
+            ) : (
+              <Button 
+                variant="outline" 
+                onClick={handleAdminClick}
+                className="hover:bg-purple-50"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Админ панель
+              </Button>
+            )}
+          </div>
+
+          {/* Show logged in user info */}
+          {isAuthenticated() && user && (
+            <div className="mt-2">
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                Вошли как: {user.username}
+              </Badge>
+            </div>
+          )}
         </div>
 
         {/* Class Selector */}
